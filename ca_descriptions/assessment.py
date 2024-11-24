@@ -22,7 +22,7 @@ def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid):
 
     NW, N, NE, W, E, SW, S, SE = neighbourstates
 
-    chaparral_prob = 0.6
+    chaparral_prob = 0.3
     forest_prob = 0.3
     canyon_prob = 0.9
 
@@ -50,16 +50,25 @@ def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid):
 
     fire_neighbour = (NW == 6) | (N == 6) | (NE == 6) | (W == 6) | (E == 6) | (SW == 6) | (S == 6) | (SE == 6)
 
-    #Set chaparral on fire, if any neighbour is on fire and probability is correct
-    set_chaparral_fire = chaparral_unburnt & fire_neighbour
-    set_chaparral_fire = set_chaparral_fire & (np.random.random(set_chaparral_fire.shape) < chaparral_prob) #Use probability
-    grid[set_chaparral_fire] = 6
+    north_cells_on_fire = (NW == 6) | (N==6) | (NE==6)
 
+    north_chaparral_fire = chaparral_unburnt & north_cells_on_fire
+    north_chaparral_fire = north_chaparral_fire & (np.random.random(north_chaparral_fire.shape) < (chaparral_prob))
+    grid[north_chaparral_fire] = 6
+
+    #Set chaparral on fire, if any neighbour is on fire and probability is correct
+    # set_chaparral_fire = chaparral_unburnt & fire_neighbour
+    # set_chaparral_fire = set_chaparral_fire & (np.random.random(set_chaparral_fire.shape) < chaparral_prob) #Use probability
+    # grid[set_chaparral_fire] = 6
+
+    north_forest_fire = forest_unburnt & north_cells_on_fire
+    north_forest_fire = north_forest_fire & (np.random.random(north_forest_fire.shape) < forest_prob)
+    grid[north_forest_fire] = 6
 
     #Set forest on fire
-    set_forest_on_fire = forest_unburnt & fire_neighbour
-    set_forest_on_fire = set_forest_on_fire & (np.random.random(set_forest_on_fire.shape) < forest_prob)
-    grid[set_forest_on_fire] = 6
+    # set_forest_on_fire = forest_unburnt & fire_neighbour
+    # set_forest_on_fire = set_forest_on_fire & (np.random.random(set_forest_on_fire.shape) < forest_prob)
+    # grid[set_forest_on_fire] = 6
 
 
     #Set canyon on fire
