@@ -17,30 +17,54 @@ import capyle.utils as utils
 import numpy as np
 
 
-def transition_func(grid, neighbourstates, neighbourcounts, decay_grid):
+def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid):
     new_grid = np.copy(grid)
 
     NW, N, NE, W, E, SW, S, SE = neighbourstates
 
-    #chaparral
+    chaparral_prob = 0.6
+    forest_prob = 0.3
+    canyon_prob = 0.9
+
+    #find burnt out cells
+    burnt_out_cells = fuel_grid[:,:] < 0.19
+
+    # set burnt out cells to state 0
+    grid[burnt_out_cells] = 0
+
+
+    # find cells on fire
+    burning_cells = (grid == 6)
+    
+    #reduce fuel
+    fuel_grid[burning_cells] -= 0.2
+
+    # find chaparral cells
     chaparral_unburnt = (grid == 2)
 
-    # forest 
+    # find forest cells 
     forest_unburnt = (grid == 3)
 
-    #canyon 
+    # find canyon cells
     canyon_unburnt = (grid == 5)
 
-    north_on_fire = (N == 6)
     fire_neighbour = (NW == 6) | (N == 6) | (NE == 6) | (W == 6) | (E == 6) | (SW == 6) | (S == 6) | (SE == 6)
 
+    #Set chaparral on fire, if any neighbour is on fire and probability is correct
     set_chaparral_fire = chaparral_unburnt & fire_neighbour
+    set_chaparral_fire = set_chaparral_fire & (np.random.random(set_chaparral_fire.shape) < chaparral_prob) #Use probability
     grid[set_chaparral_fire] = 6
 
+
+    #Set forest on fire
     set_forest_on_fire = forest_unburnt & fire_neighbour
+    set_forest_on_fire = set_forest_on_fire & (np.random.random(set_forest_on_fire.shape) < forest_prob)
     grid[set_forest_on_fire] = 6
 
+
+    #Set canyon on fire
     set_canyon_fire = canyon_unburnt & fire_neighbour
+    set_canyon_fire = set_canyon_fire & (np.random.random(set_canyon_fire.shape) < canyon_prob)
     grid[set_canyon_fire] = 6
 
 
@@ -90,12 +114,12 @@ def main():
     # Open the config object
     config = setup(sys.argv[1:])
 
-    # Initialise decay grid
-    decay_grid = np.zeros(config.grid_dims)
-    decay_grid.fill(10)
+    # Initialise decay grid - different values to be given for each terrain, 10 is standard for chaparral
+    fuel_grid = np.zeros(config.grid_dims)
+    fuel_grid.fill(10)
 
     # Create grid object
-    grid = Grid2D(config, (transition_func, decay_grid))
+    grid = Grid2D(config, (transition_func, fuel_grid))
 
     numrows, numcols = grid.grid.shape  # Assuming grid shape is (50, 50)
 
@@ -112,11 +136,18 @@ def main():
     grid.grid[6:10, 0:10] = 3
     grid.grid[6:40, 9:20] = 3
 
+    fuel_grid[6:10, 0:10] = 20
+    fuel_grid[6:40, 9:20] = 20
+
     # right forest
     grid.grid[14:20, 30:43] = 3
 
+    fuel_grid[14:20, 30:43] = 20
+
     #canyon 
     grid.grid[23:25, 25:43] = 5
+
+    fuel_grid[23:25, 25:43] = 25
 
     #town
     TOWN = 1
