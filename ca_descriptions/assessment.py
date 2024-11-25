@@ -116,7 +116,7 @@ def main():
 
     # Initialise decay grid - different values to be given for each terrain, 10 is standard for chaparral
     fuel_grid = np.zeros(config.grid_dims)
-    fuel_grid.fill(10)
+    fuel_grid.fill(np.random.uniform(5, 18))
 
     # Create grid object
     grid = Grid2D(config, (transition_func, fuel_grid))
@@ -136,18 +136,18 @@ def main():
     grid.grid[6:10, 0:10] = 3
     grid.grid[6:40, 9:20] = 3
 
-    fuel_grid[6:10, 0:10] = 20
-    fuel_grid[6:40, 9:20] = 20
+    fuel_grid[6:10, 0:10] = np.random.uniform(36, 72) # last for months
+    fuel_grid[6:40, 9:20] = np.random.uniform(36, 72) 
 
     # right forest
     grid.grid[14:20, 30:43] = 3
 
-    fuel_grid[14:20, 30:43] = 20
+    fuel_grid[14:20, 30:43] = np.random.uniform(36, 72) # last for months
 
     #canyon 
     grid.grid[23:25, 25:43] = 5
 
-    fuel_grid[23:25, 25:43] = 25
+    fuel_grid[23:25, 25:43] = np.random.uniform(0.8, 2) # lasts 4 - 10 hours
 
     #town
     TOWN = 1
