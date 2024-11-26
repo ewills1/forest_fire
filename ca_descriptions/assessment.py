@@ -16,7 +16,7 @@ from capyle.ca import Grid2D, Neighbourhood, CAConfig, randomise2d
 import capyle.utils as utils
 import numpy as np
 
-
+generation = 0
 def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid):
     new_grid = np.copy(grid)
 
@@ -66,6 +66,12 @@ def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid):
     set_canyon_fire = canyon_unburnt & fire_neighbour
     set_canyon_fire = set_canyon_fire & (np.random.random(set_canyon_fire.shape) < canyon_prob)
     grid[set_canyon_fire] = 6
+
+    global generation
+    generation += 1
+
+    if generation > 15:
+        drop_water(grid, 33, 57)
 
 
     # Debugging: Check if any cell has changed in this generation
@@ -121,7 +127,7 @@ def main():
     # Create grid object
     grid = Grid2D(config, (transition_func, fuel_grid))
 
-    numrows, numcols = grid.grid.shape  # Assuming grid shape is (50, 50)
+    numrows, numcols = grid.grid.shape  # Assuming grid shape is (100, 100)
 
     # Initialise grid 
     grid.grid.fill(2)
@@ -162,6 +168,7 @@ def main():
     #incinerator
     INCINERATOR = 1
     grid.grid[0:2, numcols-2:numcols] = INCINERATOR
+
 
     # Run the CA, save grid state every generation to timeline
     timeline = grid.run()
