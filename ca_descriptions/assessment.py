@@ -17,14 +17,41 @@ import capyle.utils as utils
 import numpy as np
 
 generation = 0
+
+def fire_probability(density, terrain, theta):
+    fire_constant = 0.4
+    initial_prob = fire_constant * (1+density) * (1+terrain)
+
+    theta_rad = np.radians(theta)
+
+    #Values from literature
+    V = 8
+    C1 = 0.045
+    C2 = 0.131
+
+    ft = np.exp(V * C2 * (np.cos(theta_rad) - 1))
+    Pw = ft * np.exp(C1 * V)
+
+    fire_prob = initial_prob * Pw
+    return fire_prob
+
+
 def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid):
     new_grid = np.copy(grid)
 
     NW, N, NE, W, E, SW, S, SE = neighbourstates
 
-    chaparral_prob = 0.6
-    forest_prob = 0.3
-    canyon_prob = 0.9
+    chaparral_terrain = 0
+    forest_terrain = -0.3
+    canyon_terrain = 0.4
+
+    chaparral_density = 0
+    forest_density = 0.3
+    canyon_density = -0.2
+
+    chaparral_prob = fire_probability(chaparral_density, chaparral_terrain, 0)
+    forest_prob = fire_probability(forest_density, forest_terrain, 0)
+    canyon_prob = fire_probability(canyon_density, canyon_terrain, 0)
 
     #find burnt out cells
     burnt_out_cells = fuel_grid[:,:] < 0.19
@@ -35,9 +62,11 @@ def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid):
 
     # find cells on fire
     burning_cells = (grid == 6)
-    
     #reduce fuel
     fuel_grid[burning_cells] -= 0.2
+
+    delay_cells = (grid==7)
+    grid[delay_cells] = 6
 
     # find chaparral cells
     chaparral_unburnt = (grid == 2)
@@ -48,24 +77,33 @@ def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid):
     # find canyon cells
     canyon_unburnt = (grid == 5)
 
-    fire_neighbour = (NW == 6) | (N == 6) | (NE == 6) | (W == 6) | (E == 6) | (SW == 6) | (S == 6) | (SE == 6)
+    north_cells_on_fire = (NW == 6) | (N==6) | (NE==6)
+    side_cells_on_fire = (W == 6) | (E == 6) | (SW == 6) | (SE == 6)
 
-    #Set chaparral on fire, if any neighbour is on fire and probability is correct
-    set_chaparral_fire = chaparral_unburnt & fire_neighbour
-    set_chaparral_fire = set_chaparral_fire & (np.random.random(set_chaparral_fire.shape) < chaparral_prob) #Use probability
-    grid[set_chaparral_fire] = 6
+    #Higher probability for southern cells to set on fire
+    north_chaparral_fire = chaparral_unburnt & north_cells_on_fire
+    north_chaparral_fire = north_chaparral_fire & (np.random.random(north_chaparral_fire.shape) < (chaparral_prob))
+    grid[north_chaparral_fire] = 7
+                                                 
 
-
-    #Set forest on fire
-    set_forest_on_fire = forest_unburnt & fire_neighbour
-    set_forest_on_fire = set_forest_on_fire & (np.random.random(set_forest_on_fire.shape) < forest_prob)
-    grid[set_forest_on_fire] = 6
-
+    north_forest_fire = forest_unburnt & north_cells_on_fire
+    north_forest_fire = north_forest_fire & (np.random.random(north_forest_fire.shape) < forest_prob)
+    grid[north_forest_fire] = 7
 
     #Set canyon on fire
-    set_canyon_fire = canyon_unburnt & fire_neighbour
+    set_canyon_fire = canyon_unburnt & north_cells_on_fire
     set_canyon_fire = set_canyon_fire & (np.random.random(set_canyon_fire.shape) < canyon_prob)
-    grid[set_canyon_fire] = 6
+    grid[set_canyon_fire] = 7
+
+    # Lower probability for side neighbors
+    side_chaparral_fire = chaparral_unburnt & side_cells_on_fire
+    side_chaparral_fire = side_chaparral_fire & (np.random.random(side_chaparral_fire.shape) < (0.1))
+    grid[side_chaparral_fire] = 7
+
+    # Lower probability for side neighbors
+    side_forest_fire = forest_unburnt & side_cells_on_fire
+    side_forest_fire = side_forest_fire & (np.random.random(side_chaparral_fire.shape) < (0.1))
+    grid[side_chaparral_fire] = 7
 
     global generation
     generation += 1
@@ -91,7 +129,7 @@ def setup(args):
     config.dimensions = 2
     # 0 - Burnt Out, 1 - Building, 2 - Chaparral, 3 - Forest, 4 - Lake, 5 - Canyon, 6 - Building on Fire,
     # 7 - Chaparral On Fire,8 - Forest on Fire, 9 - Canyon on Fire
-    config.states = (0, 1, 2, 3, 4, 5, 6)
+    config.states = (0, 1, 2, 3, 4, 5, 6, 7)
     # ------------------------------------------------------------------------
 
     # ---- Override the defaults below (these may be changed at anytime) ----
@@ -102,6 +140,7 @@ def setup(args):
                             (0, 0.46, 0.74), # 4 - lake
                             (1, 1, 0), # 5 - canyon
                             (1, 0, 0), # 6 - burning
+                            (1, 0, 0) #7 - burning, not spreading yet
                             ]
                                
     config.num_generations = 168
