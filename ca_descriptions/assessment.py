@@ -16,15 +16,40 @@ from capyle.ca import Grid2D, Neighbourhood, CAConfig, randomise2d
 import capyle.utils as utils
 import numpy as np
 
+def fire_probability(density, terrain, theta):
+    fire_constant = 0.58
+    initial_prob = fire_constant * (1+density) * (1+terrain)
+
+    theta_rad = np.radians(theta)
+
+    #Values from literature
+    V = 8
+    C1 = 0.045
+    C2 = 0.131
+
+    ft = np.exp(V * C2 * (np.cos(theta_rad) - 1))
+    Pw = ft * np.exp(C1 * V)
+
+    fire_prob = initial_prob * Pw
+    return fire_prob
+
 
 def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid):
     new_grid = np.copy(grid)
 
     NW, N, NE, W, E, SW, S, SE = neighbourstates
 
-    chaparral_prob = 0.3
-    forest_prob = 0.3
-    canyon_prob = 0.9
+    chaparral_terrain = 0
+    forest_terrain = -0.3
+    canyon_terrain = 0.4
+
+    chaparral_density = 0
+    forest_density = 0.3
+    canyon_density = -0.2
+
+    chaparral_prob = fire_probability(chaparral_density, chaparral_terrain, 0)
+    forest_prob = fire_probability(forest_density, forest_terrain, 0)
+    canyon_prob = fire_probability(canyon_density, canyon_terrain, 0)
 
     #find burnt out cells
     burnt_out_cells = fuel_grid[:,:] < 0.19
@@ -52,6 +77,9 @@ def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid):
 
     north_cells_on_fire = (NW == 6) | (N==6) | (NE==6)
 
+    side_cells_on_fire = (E == 6) | (W == 6)
+
+    #Higher probability for southern cells to set on fire
     north_chaparral_fire = chaparral_unburnt & north_cells_on_fire
     north_chaparral_fire = north_chaparral_fire & (np.random.random(north_chaparral_fire.shape) < (chaparral_prob))
     grid[north_chaparral_fire] = 6
