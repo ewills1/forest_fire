@@ -99,7 +99,7 @@ def setup(args):
                             ]
                                
     config.num_generations = 168
-    config.grid_dims = (50,50)
+    config.grid_dims = (100,100)
 
     # ----------------------------------------------------------------------
 
@@ -127,41 +127,41 @@ def main():
     grid.grid.fill(2)
 
     #Right lake
-    grid.grid[26:40, 42:45] = 4
+    grid.grid[52:80, 84:90] = 4
 
     #Bottom lake
-    grid.grid[40:43, 15:30] = 4
+    grid.grid[80:86, 30:60] = 4
 
     # forest 
-    grid.grid[6:10, 0:10] = 3
-    grid.grid[6:40, 9:20] = 3
+    grid.grid[12:20, 0:20] = 3
+    grid.grid[12:80, 18:40] = 3
 
-    fuel_grid[6:10, 0:10] = np.random.uniform(36, 72) # last for months
-    fuel_grid[6:40, 9:20] = np.random.uniform(36, 72) 
+    fuel_grid[12:20, 0:20] = np.random.uniform(36, 72) # last for months
+    fuel_grid[12:80, 18:40] = np.random.uniform(36, 72) 
 
     # right forest
-    grid.grid[14:20, 30:43] = 3
+    grid.grid[28:40, 60:86] = 3
 
-    fuel_grid[14:20, 30:43] = np.random.uniform(36, 72) # last for months
+    fuel_grid[28:40, 60:86] = np.random.uniform(36, 72) # last for months
 
     #canyon 
-    grid.grid[23:25, 25:43] = 5
+    grid.grid[46:50, 50:86] = 5
 
-    fuel_grid[23:25, 25:43] = np.random.uniform(0.8, 2) # lasts 4 - 10 hours
+    fuel_grid[46:50, 50:86] = np.random.uniform(0.8, 2) # lasts 4 - 10 hours
 
     #town
     TOWN = 1
-    for x in np.arange(33.75, 36.25, 0.5):  # finer resolution
-        for y in np.arange(24.75, 27.25, 0.5):
+    for x in np.arange(67.5, 72.5, 1):  # finer resolution
+        for y in np.arange(49.5, 54.5, 1):
             grid.grid[int(x), int(y)] = TOWN
 
     #powerplant
     POWERPLANT = 6
-    grid.grid[15:16, 5:6] = POWERPLANT
+    grid.grid[30:32, 10:12] = POWERPLANT
 
     #incinerator
-    INCINERATOR = 6
-    grid.grid[0:1, numcols-1:numcols] = INCINERATOR
+    INCINERATOR = 1
+    grid.grid[0:2, numcols-2:numcols] = INCINERATOR
 
     # Run the CA, save grid state every generation to timeline
     timeline = grid.run()
@@ -170,6 +170,9 @@ def main():
     config.save()
     # save timeline to file
     utils.save(timeline, config.timeline_path)
+
+def drop_water(grid, top_left_x, top_left_y):
+    grid[top_left_y:top_left_y + 7, top_left_x:top_left_x + 7] = 4
 
 
 if __name__ == "__main__":
