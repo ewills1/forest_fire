@@ -42,7 +42,7 @@ def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid):
     NW, N, NE, W, E, SW, S, SE = neighbourstates
 
     chaparral_terrain = 0
-    forest_terrain = -0.3
+    forest_terrain = -0.8
     canyon_terrain = 0.4
 
     chaparral_density = 0
@@ -201,11 +201,11 @@ def main():
             grid.grid[int(x), int(y)] = TOWN
 
     #powerplant
-    POWERPLANT = 6
+    POWERPLANT = 1
     grid.grid[30:32, 10:12] = POWERPLANT
 
     #incinerator
-    INCINERATOR = 1
+    INCINERATOR = 6
     grid.grid[0:2, numcols-2:numcols] = INCINERATOR
 
 
