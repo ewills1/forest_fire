@@ -108,8 +108,8 @@ def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid):
     global generation
     generation += 1
 
-    if generation > 15:
-        drop_water(grid, 33, 57)
+    # if generation > 15:
+    #     drop_water(grid, 33, 57)
 
 
     # Debugging: Check if any cell has changed in this generation
