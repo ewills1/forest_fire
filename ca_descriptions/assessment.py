@@ -19,15 +19,15 @@ import numpy as np
 generation = 0
 
 def fire_probability(density, terrain, theta):
-    fire_constant = 0.4
+    fire_constant = 0.58
     initial_prob = fire_constant * (1+density) * (1+terrain)
 
     theta_rad = np.radians(theta)
 
     #Values from literature
-    V = 8
-    C1 = 0.045
-    C2 = 0.131
+    V = 2
+    C1 = 0.03
+    C2 = 0.05
 
     ft = np.exp(V * C2 * (np.cos(theta_rad) - 1))
     Pw = ft * np.exp(C1 * V)
@@ -36,81 +36,96 @@ def fire_probability(density, terrain, theta):
     return fire_prob
 
 
-def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid):
+def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid, theta=0):
     new_grid = np.copy(grid)
 
     NW, N, NE, W, E, SW, S, SE = neighbourstates
 
     chaparral_terrain = 0
-    forest_terrain = -0.8
+    forest_terrain = -0.4
     canyon_terrain = 0.4
 
     chaparral_density = 0
     forest_density = 0.3
     canyon_density = -0.2
 
-    chaparral_prob = fire_probability(chaparral_density, chaparral_terrain, 0)
-    forest_prob = fire_probability(forest_density, forest_terrain, 0)
-    canyon_prob = fire_probability(canyon_density, canyon_terrain, 0)
+    chaparral_prob = fire_probability(chaparral_density, chaparral_terrain, theta)
+    forest_prob = fire_probability(forest_density, forest_terrain, theta)
+    canyon_prob = fire_probability(canyon_density, canyon_terrain, theta)
 
-    #find burnt out cells
+    # Define wind influence based on theta (wind direction)
+    theta_rad = np.radians(theta)
+    wind_weights = {
+        'N': max(0, np.cos(theta_rad)),
+        'NE': max(0, np.cos(theta_rad - np.pi / 4)),
+        'E': max(0, np.cos(theta_rad - np.pi / 2)),
+        'SE': max(0, np.cos(theta_rad - 3 * np.pi / 4)),
+        'S': max(0, np.cos(theta_rad - np.pi)),
+        'SW': max(0, np.cos(theta_rad - 5 * np.pi / 4)),
+        'W': max(0, np.cos(theta_rad - 3 * np.pi / 2)),
+        'NW': max(0, np.cos(theta_rad - 7 * np.pi / 4))
+    }
+
+    # Normalize weights to sum to 1 for probability scaling
+    total_weight = sum(wind_weights.values())
+    for direction in wind_weights:
+        wind_weights[direction] /= total_weight
+
+    # Find burnt out cells
     burnt_out_cells = fuel_grid[:,:] < 0.19
 
-    # set burnt out cells to state 0
+    # Set burnt out cells to state 0
     grid[burnt_out_cells] = 0
 
-
-    # find cells on fire
+    # Find cells on fire
     burning_cells = (grid == 6)
-    #reduce fuel
+    # Reduce fuel
     fuel_grid[burning_cells] -= 0.2
 
-    delay_cells = (grid==7)
+    delay_cells = (grid == 7)
     grid[delay_cells] = 6
 
-    # find chaparral cells
+    # Find chaparral cells
     chaparral_unburnt = (grid == 2)
 
-    # find forest cells 
+    # Find forest cells 
     forest_unburnt = (grid == 3)
 
-    # find canyon cells
+    # Find canyon cells
     canyon_unburnt = (grid == 5)
 
-    north_cells_on_fire = (NW == 6) | (N==6) | (NE==6)
-    side_cells_on_fire = (W == 6) | (E == 6) | (SW == 6) | (SE == 6)
+    # Calculate fire spread probabilities for all neighbors based on wind influence
+    fire_probabilities = {
+        'N': wind_weights['N'],
+        'NE': wind_weights['NE'],
+        'E': wind_weights['E'],
+        'SE': wind_weights['SE'],
+        'S': wind_weights['S'],
+        'SW': wind_weights['SW'],
+        'W': wind_weights['W'],
+        'NW': wind_weights['NW']
+    }
 
-    #Higher probability for southern cells to set on fire
-    north_chaparral_fire = chaparral_unburnt & north_cells_on_fire
-    north_chaparral_fire = north_chaparral_fire & (np.random.random(north_chaparral_fire.shape) < (chaparral_prob))
-    grid[north_chaparral_fire] = 7
-                                                 
+    # Spread fire to chaparral
+    for direction, neighbor in zip(fire_probabilities.keys(), [N, NE, E, SE, S, SW, W, NW]):
+        chaparral_fire = chaparral_unburnt & (neighbor == 6)
+        chaparral_fire = chaparral_fire & (np.random.random(chaparral_fire.shape) < chaparral_prob * fire_probabilities[direction])
+        grid[chaparral_fire] = 6
 
-    north_forest_fire = forest_unburnt & north_cells_on_fire
-    north_forest_fire = north_forest_fire & (np.random.random(north_forest_fire.shape) < forest_prob)
-    grid[north_forest_fire] = 7
+    # Spread fire to forest
+    for direction, neighbor in zip(fire_probabilities.keys(), [N, NE, E, SE, S, SW, W, NW]):
+        forest_fire = forest_unburnt & (neighbor == 6)
+        forest_fire = forest_fire & (np.random.random(forest_fire.shape) < forest_prob * fire_probabilities[direction])
+        grid[forest_fire] = 6
 
-    #Set canyon on fire
-    set_canyon_fire = canyon_unburnt & north_cells_on_fire
-    set_canyon_fire = set_canyon_fire & (np.random.random(set_canyon_fire.shape) < canyon_prob)
-    grid[set_canyon_fire] = 7
-
-    # Lower probability for side neighbors
-    side_chaparral_fire = chaparral_unburnt & side_cells_on_fire
-    side_chaparral_fire = side_chaparral_fire & (np.random.random(side_chaparral_fire.shape) < (0.1))
-    grid[side_chaparral_fire] = 7
-
-    # Lower probability for side neighbors
-    side_forest_fire = forest_unburnt & side_cells_on_fire
-    side_forest_fire = side_forest_fire & (np.random.random(side_chaparral_fire.shape) < (0.1))
-    grid[side_chaparral_fire] = 7
+    # Spread fire to canyon
+    for direction, neighbor in zip(fire_probabilities.keys(), [N, NE, E, SE, S, SW, W, NW]):
+        canyon_fire = canyon_unburnt & (neighbor == 6)
+        canyon_fire = canyon_fire & (np.random.random(canyon_fire.shape) < canyon_prob * fire_probabilities[direction])
+        grid[canyon_fire] = 6
 
     global generation
     generation += 1
-
-    # if generation > 15:
-    #     drop_water(grid, 33, 57)
-
 
     # Debugging: Check if any cell has changed in this generation
     if not np.array_equal(grid, new_grid):  # Check if the grid has changed
@@ -163,8 +178,10 @@ def main():
     fuel_grid = np.zeros(config.grid_dims)
     fuel_grid.fill(np.random.uniform(5, 18))
 
+    theta = 0
+
     # Create grid object
-    grid = Grid2D(config, (transition_func, fuel_grid))
+    grid = Grid2D(config, (transition_func, fuel_grid, theta))
 
     numrows, numcols = grid.grid.shape  # Assuming grid shape is (100, 100)
 
