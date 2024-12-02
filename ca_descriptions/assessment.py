@@ -19,7 +19,7 @@ import numpy as np
 generation = 0
 
 def fire_probability(density, terrain, theta):
-    fire_constant = 0.4
+    fire_constant = 0.58
     initial_prob = fire_constant * (1+density) * (1+terrain)
 
     theta_rad = np.radians(theta)
