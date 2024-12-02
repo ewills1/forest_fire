@@ -82,9 +82,6 @@ def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid, theta=0):
     # Reduce fuel
     fuel_grid[burning_cells] -= 0.2
 
-    delay_cells = (grid == 7)
-    grid[delay_cells] = 6
-
     # Find chaparral cells
     chaparral_unburnt = (grid == 2)
 
@@ -218,11 +215,11 @@ def main():
             grid.grid[int(x), int(y)] = TOWN
 
     #powerplant
-    POWERPLANT = 1
+    POWERPLANT = 6
     grid.grid[30:32, 10:12] = POWERPLANT
 
     #incinerator
-    INCINERATOR = 6
+    INCINERATOR = 1
     grid.grid[0:2, numcols-2:numcols] = INCINERATOR
 
 
