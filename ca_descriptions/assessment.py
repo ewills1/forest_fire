@@ -108,15 +108,10 @@ def transition_func(grid, neighbourstates, neighbourcounts, fuel_grid):
     global generation
     generation += 1
 
+    # To test water dropping
+    # Change generation number and x,y values as needed
     # if generation > 15:
     #     drop_water(grid, 33, 57)
-
-
-    # Debugging: Check if any cell has changed in this generation
-    if not np.array_equal(grid, new_grid):  # Check if the grid has changed
-        print("Grid updated in this generation")
-    else:
-        print("No change in this generation")
 
     return grid
 
@@ -200,14 +195,19 @@ def main():
         for y in np.arange(49.5, 54.5, 1):
             grid.grid[int(x), int(y)] = TOWN
 
-    #powerplant
+    # To make incinerator the starting point of the fire
+    INCINERATOR = 6
     POWERPLANT = 1
+
+    # To make power plant the starting point of the fire
+    # INCINERATOR = 1
+    # POWERPLANT = 6
+
+    #powerplant
     grid.grid[30:32, 10:12] = POWERPLANT
 
     #incinerator
-    INCINERATOR = 6
     grid.grid[0:2, numcols-2:numcols] = INCINERATOR
-
 
     # Run the CA, save grid state every generation to timeline
     timeline = grid.run()
